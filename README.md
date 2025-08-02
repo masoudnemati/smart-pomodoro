@@ -17,7 +17,7 @@
 
 ```bash
 # Clone repo
-git clone https://github.com/yourusername/smart-pomodoro.git
+git clone https://github.com/masoudnemati/smart-pomodoro.git
 cd smart-pomodoro
 
 # Create virtual environment
