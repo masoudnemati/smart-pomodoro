@@ -1,0 +1,10 @@
+# Ignore virtual environment
+pomodoro-env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS/filesystem
+.DS_Store
+Thumbs.db

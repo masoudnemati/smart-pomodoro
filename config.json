@@ -1,0 +1,16 @@
+{
+    "work_time_minutes": 1,
+    "rest_time_minutes": 1,
+    "size": 35,
+    "colors": {
+        "background": "rgba(50, 50, 50, 100)",
+        "working": "green",
+        "resting": "red",
+        "waiting": "blue"
+    },
+    "position": {
+        "x": 1324,
+        "y": 712
+    },
+    "notification_sound": "notification.mp3"
+}
