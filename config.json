@@ -1,6 +1,6 @@
 {
-    "work_time_minutes": 1,
-    "rest_time_minutes": 1,
+    "work_time_minutes": 25,
+    "rest_time_minutes": 5,
     "size": 35,
     "colors": {
         "background": "rgba(50, 50, 50, 100)",
