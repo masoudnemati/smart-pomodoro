@@ -1,5 +1,6 @@
 # Ignore virtual environment
 pomodoro-env/
+venv/
 
 # Python cache
 __pycache__/

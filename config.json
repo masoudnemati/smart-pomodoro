@@ -3,14 +3,14 @@
   "rest_time_minutes": 5,
   "size": 35,
   "colors": {
-    "background": "rgba(50, 50, 50, 50)",
+    "background": "rgba(50, 50, 50, 90)",
     "working": "lightgray",
     "resting": "red",
     "waiting": "darkgray"
   },
   "position": {
-    "x": 1324,
-    "y": 710
+    "x": 1315,
+    "y": 700
   },
   "notification_sound": "notification.mp3"
 }
