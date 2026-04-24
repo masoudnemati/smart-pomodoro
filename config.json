@@ -1,16 +1,17 @@
 {
-  "work_time_minutes": 25,
-  "rest_time_minutes": 5,
-  "size": 35,
-  "colors": {
-    "background": "rgba(50, 50, 50, 90)",
-    "working": "lightgray",
-    "resting": "red",
-    "waiting": "green"
-  },
-  "position": {
-    "x": 1328,
-    "y": 712
-  },
-  "notification_sound": "notification.mp3"
+    "work_time_minutes": 25,
+    "rest_time_minutes": 5,
+    "size": 35,
+    "colors": {
+        "background": "rgba(50, 50, 50, 95)",
+        "working": "lightgray",
+        "resting": "red",
+        "waiting": "green",
+        "shadow": "rgba(0, 0, 0, 40)"
+    },
+    "position": {
+        "x": 1329,
+        "y": 714
+    },
+    "notification_sound": "notification.mp3"
 }

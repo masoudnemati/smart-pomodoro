@@ -140,6 +140,32 @@ class CircleWindow(QWidget):
         
         self.update()
     
+    def draw_shadow(self, painter: QPainter):
+        """Draw a centered, soft shadow that acts like a subtle border + 2px glow."""
+        shadow_color = self.get_shadow_color()
+        base_alpha = shadow_color.alpha()
+
+        margin = UI_CONSTANTS['circle_margin']
+        circle_size = self.width() - 2 * margin
+
+        painter.save()
+
+        # Layer 1: the "1px border" – almost solid at the exact edge
+        c1 = QColor(shadow_color)
+        c1.setAlpha(base_alpha)                        # full shadow opacity (e.g. 40)
+        painter.setBrush(c1)
+        painter.setPen(Qt.NoPen)
+        # Slightly larger to overlap the circle edge → looks like a 1px border
+        painter.drawEllipse(margin - 1, margin - 1, circle_size + 2, circle_size + 2)
+
+        # Layer 2: the "2px spread" – wider, more transparent
+        c2 = QColor(shadow_color)
+        c2.setAlpha(base_alpha // 3)                   # much fainter
+        painter.setBrush(c2)
+        painter.drawEllipse(margin - 3, margin - 3, circle_size + 6, circle_size + 6)
+
+        painter.restore()
+
     def on_progress_updated(self, progress: float):
         """Handle progress update"""
         self.current_progress = progress
@@ -200,11 +226,19 @@ class CircleWindow(QWidget):
             return rest_color
         else:  # waiting
             return self.parse_color(colors['waiting'])
-    
+
+    def get_shadow_color(self) -> QColor:
+        """Return the shadow color from config, or a default if not set."""
+        shadow_str = self.config.colors.get('shadow', 'rgba(0, 0, 0, 40)')
+        return self.parse_color(shadow_str)
+
     def paintEvent(self, event):
         """Paint the circular timer"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+
+        #  Draw the shadow first (so it appears behind the circle)
+        self.draw_shadow(painter)
         
         # Apply animation properties
         painter.setOpacity(self.animation_opacity)
