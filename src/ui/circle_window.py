@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QDesktopWidget
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtDBus import QDBusConnection  
+from PyQt5.QtCore import Qt, QPoint, pyqtSlot 
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
 from config.config_manager import ConfigManager
 from core.input_manager import InputManager
@@ -49,6 +50,23 @@ class CircleWindow(QWidget):
         
         self.connect_signals()
         self.start_initial_state()
+
+        # ---------- suspend/resume detection ----------
+        bus = QDBusConnection.systemBus()
+        if bus.isConnected():
+            result = bus.connect(
+                "org.freedesktop.login1",
+                "/org/freedesktop/login1",
+                "org.freedesktop.login1.Manager",
+                "PrepareForSleep",
+                self._on_system_sleep_signal   # we'll define this method next
+            )
+            if result:
+                print("✅ Suspend/resume detection enabled!")
+            else:
+                print("❌ Failed to connect signal")
+        else:
+            print("❌ System D-Bus not available")
     
     def setup_window(self):
         """Setup window properties"""
@@ -290,3 +308,11 @@ class CircleWindow(QWidget):
         self.timer.cleanup()
         self.input_manager.cleanup()
         event.accept()
+
+    @pyqtSlot(bool)
+    def _on_system_sleep_signal(self, sleeping: bool):
+        """Called when system suspends or wakes up."""
+        print(f"D-Bus signal received! sleeping={sleeping}")
+        if not sleeping:                # waking up
+            print("System resumed from sleep – restarting Pomodoro.")
+            self.timer.restart()

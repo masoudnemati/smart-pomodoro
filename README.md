@@ -12,6 +12,7 @@
 - **⏸️ Pause/Resume**: Full timer control via right-click menu
 - **📍 Draggable**: Move anywhere on screen with position memory
 - **🔒 Lock Mode**: Prevent accidental movement
+- **🔄 Sleep/Wake Detection**: Automatically restarts the timer when the system wakes up from suspend
 - **⚙️ Configurable**: Customize colors, durations, sounds via JSON
 
 ## Requirements

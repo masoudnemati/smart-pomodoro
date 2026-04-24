@@ -6,11 +6,11 @@
     "background": "rgba(50, 50, 50, 90)",
     "working": "lightgray",
     "resting": "red",
-    "waiting": "darkgray"
+    "waiting": "green"
   },
   "position": {
-    "x": 1315,
-    "y": 700
+    "x": 1328,
+    "y": 712
   },
   "notification_sound": "notification.mp3"
 }
