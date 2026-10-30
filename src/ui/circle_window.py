@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QDesktopWidget, QInputDialog
+from PyQt5.QtWidgets import (
+    QWidget, QDesktopWidget, QDialog, QVBoxLayout,
+    QLabel, QSpinBox, QDialogButtonBox
+)
 from PyQt5.QtDBus import QDBusConnection  
 from PyQt5.QtCore import Qt, QPoint, pyqtSlot, QRectF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QFontMetricsF
@@ -94,6 +97,9 @@ class CircleWindow(QWidget):
         self.timer.progress_updated.connect(self.on_progress_updated)
         self.timer.work_completed.connect(self.on_work_completed)
         self.timer.rest_completed.connect(self.on_rest_completed)
+        self.context_menu.reset_pomodoros_requested.connect(
+           self.reset_pomodoro_counter
+        )
         
         # Input manager signals
         self.input_manager.activity_detected.connect(self.on_activity_detected)
@@ -319,9 +325,9 @@ class CircleWindow(QWidget):
             self.timer.is_paused,
             self.is_locked,
             self.timer.get_time_remaining_text(),
-            self.pomodoros_completed,
             self.pomodoro_goal
         )
+
         menu.exec_(event.globalPos())
     
     def mousePressEvent(self, event):
@@ -373,68 +379,61 @@ class CircleWindow(QWidget):
 
     def change_pomodoro_goal(self):
         """Allow the user to change the Pomodoro goal"""
-        goal, accepted = QInputDialog.getInt(
-            self,
-            "Pomodoro Goal",
-            "Number of Pomodoros:",
-            self.pomodoro_goal,
-            1,
-            99
-        )
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Pomodoro Goal")
 
-        if accepted:
-            self.pomodoro_goal = goal
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(QLabel("Number of Pomodoros:"))
+
+        spin_box = QSpinBox()
+        spin_box.setRange(1, 99)
+        spin_box.setValue(self.pomodoro_goal)
+        layout.addWidget(spin_box)
+
+        # OK button only (no Cancel button)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttons.accepted.connect(dialog.accept)
+        layout.addWidget(buttons)
+
+        if dialog.exec_() == QDialog.Accepted:
+            self.pomodoro_goal = spin_box.value()
 
             self.config.set('pomodoro_goal', self.pomodoro_goal)
             self.config.save_config()
 
+            self.update()
+
+
+    def reset_pomodoro_counter(self):
+        """Reset completed Pomodoros to zero"""
+        self.pomodoros_completed = 0
+
+        self.config.set('pomodoros_completed', 0)
+        self.config.save_config()
+
+        self.update()
+
     def draw_pomodoro_counter(self, painter: QPainter):
-        """Draw Pomodoro counter in the exact center of the circle"""
+        """Draw Pomodoro counter with text shadow"""
         painter.save()
         painter.setOpacity(1.0)
 
-        center_x = self.width() / 2
-        center_y = self.height() / 2
-
         margin = UI_CONSTANTS['circle_margin']
-        circle_diameter = min(self.width(), self.height()) - 2 * margin
-
-        diameter = circle_diameter * 0.90
-
-        counter_rect = QRectF(
-            center_x - diameter / 2,
-            center_y - diameter / 2,
-            diameter,
-            diameter
-        )
-
-        # Counter background
-        bg_color = self.parse_color(
-            self.config.colors.get(
-                'counter_background', 'rgba(0, 0, 0, 180)'
-            )
-        )
-
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(QBrush(bg_color))
-        painter.drawEllipse(counter_rect)
+        diameter = min(self.width(), self.height()) - 2 * margin
 
         # Counter text
-        text_color = self.parse_color(
-            self.config.colors.get('counter_text', 'white')
-        )
-
         counter_text = f"{self.pomodoros_completed}/{self.pomodoro_goal}"
 
         font = QFont()
         font.setBold(True)
 
-        font_size = max(9, int(diameter * 0.56))
+        font_size = max(10, int(diameter * 0.68))
         font.setPixelSize(font_size)
 
-        # Ensure text fits inside the background circle
-        metrics = QFontMetricsF(font)
+        # Ensure text fits inside the circle
         max_text_width = diameter * 0.90
+        metrics = QFontMetricsF(font)
         text_width = metrics.horizontalAdvance(counter_text)
 
         if text_width > max_text_width:
@@ -443,9 +442,27 @@ class CircleWindow(QWidget):
             )
 
         painter.setFont(font)
-        painter.setPen(text_color)
 
-        # Center text horizontally and vertically
-        painter.drawText(counter_rect, Qt.AlignCenter, counter_text)
+        text_rect = QRectF(self.rect())
+
+        # Text shadow
+        shadow_color = self.parse_color(
+            self.config.colors.get('counter_shadow', 'rgba(0, 0, 0, 220)')
+        )
+
+        painter.setPen(shadow_color)
+        painter.drawText(
+            text_rect.translated(1.2, 1.2),
+            Qt.AlignCenter,
+            counter_text
+        )
+
+        # Main text
+        text_color = self.parse_color(
+            self.config.colors.get('counter_text', 'white')
+        )
+
+        painter.setPen(text_color)
+        painter.drawText(text_rect, Qt.AlignCenter, counter_text)
 
         painter.restore()

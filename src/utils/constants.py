@@ -20,7 +20,7 @@ DEFAULT_CONFIG = {
         'resting': 'red',
         'waiting': 'green',
         'shadow': 'rgba(0, 0, 0, 40)',
-        'counter_background': 'rgba(0, 0, 0, 180)',
+        'counter_shadow': 'rgba(0, 0, 0, 220)',
         'counter_text': 'white'
 },
     'position': {
