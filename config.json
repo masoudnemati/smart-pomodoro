@@ -1,17 +1,21 @@
 {
-    "work_time_minutes": 25,
-    "rest_time_minutes": 5,
-    "size": 35,
-    "colors": {
-        "background": "rgba(50, 50, 50, 95)",
-        "working": "lightgray",
-        "resting": "red",
-        "waiting": "green",
-        "shadow": "rgba(0, 0, 0, 40)"
-    },
-    "position": {
-        "x": 1329,
-        "y": 714
-    },
-    "notification_sound": "notification.mp3"
+  "work_time_minutes": 25,
+  "rest_time_minutes": 5,
+  "size": 35,
+  "colors": {
+    "background": "rgba(50, 50, 50, 95)",
+    "working": "lightgray",
+    "resting": "red",
+    "waiting": "green",
+    "shadow": "rgba(0, 0, 0, 40)",
+    "counter_background": "rgba(0, 0, 0, 180)",
+    "counter_text": "white"
+  },
+  "position": {
+    "x": 1327,
+    "y": 711
+  },
+  "notification_sound": "notification.mp3",
+  "pomodoro_goal": 5,
+  "pomodoros_completed": 1
 }

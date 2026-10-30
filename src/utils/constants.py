@@ -14,12 +14,15 @@ DEFAULT_CONFIG = {
     'work_time_minutes': 25,
     'rest_time_minutes': 5,
     'size': 60,
-    'colors': {
+   'colors': {
         'background': 'rgba(50, 50, 50, 100)',
-        'working': 'green',
-        'resting': 'yellow',
-        'waiting': 'blue'
-    },
+        'working': 'lightgray',
+        'resting': 'red',
+        'waiting': 'green',
+        'shadow': 'rgba(0, 0, 0, 40)',
+        'counter_background': 'rgba(0, 0, 0, 180)',
+        'counter_text': 'white'
+},
     'position': {
         'x': None,
         'y': None

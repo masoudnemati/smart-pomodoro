@@ -10,6 +10,7 @@ class PomodoroTimer(QObject):
     progress_updated = pyqtSignal(float)  # Progress (0.0 to 1.0)
     work_completed = pyqtSignal()
     rest_completed = pyqtSignal()
+    pomodoro_completed = pyqtSignal()
     
     def __init__(self, config_manager: ConfigManager):
         super().__init__()
@@ -125,6 +126,7 @@ class PomodoroTimer(QObject):
         
         if self.phase == Phase.WORKING:
             if self.elapsed >= self.config.work_duration:
+                self.pomodoro_completed.emit()
                 self.start_completion_phase()
             else:
                 # Progress decreases as time passes (starts full, goes to empty)

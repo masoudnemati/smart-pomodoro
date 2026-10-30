@@ -19,16 +19,27 @@ class ContextMenu(QObject):
     toggle_lock_requested = pyqtSignal()
     restart_requested = pyqtSignal()
     exit_requested = pyqtSignal()
+    change_goal_requested = pyqtSignal()
     
     def __init__(self, parent=None):
         super().__init__()
         self.parent = parent
         self.icons = UI_CONSTANTS['menu_icons']
     
-    def create_menu(self, phase: str, is_paused: bool, is_locked: bool, 
-                   time_remaining: str) -> QMenu:
+    def create_menu(self, phase: str, is_paused: bool, is_locked: bool,
+                time_remaining: str, pomodoros_completed: int,
+                pomodoro_goal: int) -> QMenu:
         """Create context menu based on current state"""
         menu = QMenu(self.parent)
+
+        # Pomodoro counter
+        pomodoro_action = QAction(
+            f"Pomodoros: {pomodoros_completed}/{pomodoro_goal}", menu
+        )
+        pomodoro_action.triggered.connect(self.change_goal_requested.emit)
+        menu.addAction(pomodoro_action)
+
+        menu.addSeparator()
         
         # Time remaining (disabled action as header)
         time_action = QAction(f"{self.icons['time']} {time_remaining}", menu)

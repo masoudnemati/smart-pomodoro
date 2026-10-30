@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QDesktopWidget
+from PyQt5.QtWidgets import QWidget, QDesktopWidget, QInputDialog
 from PyQt5.QtDBus import QDBusConnection  
-from PyQt5.QtCore import Qt, QPoint, pyqtSlot 
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
+from PyQt5.QtCore import Qt, QPoint, pyqtSlot, QRectF
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QFontMetricsF
 from config.config_manager import ConfigManager
 from core.input_manager import InputManager
 from core.pomodoro_timer import PomodoroTimer
@@ -21,6 +21,12 @@ class CircleWindow(QWidget):
         
         # Initialize components
         self.config = ConfigManager()
+        self.pomodoros_completed = int(
+            self.config.get('pomodoros_completed', 0)
+        )
+        self.pomodoro_goal = int(
+            self.config.get('pomodoro_goal', 4)
+        )
         self.setup_window()
         
         # Core components
@@ -108,6 +114,9 @@ class CircleWindow(QWidget):
         self.resting_animation.animation_updated.connect(self.update_animation_properties)
         self.completion_animation.animation_updated.connect(self.update_animation_properties)
         self.completion_animation.animation_finished.connect(self.on_completion_finished)
+
+        self.timer.pomodoro_completed.connect(self.on_pomodoro_completed)
+        self.context_menu.change_goal_requested.connect(self.change_pomodoro_goal)
     
     def start_initial_state(self):
         """Start in waiting state"""
@@ -267,6 +276,7 @@ class CircleWindow(QWidget):
             self.draw_full_circle(painter, margin, circle_size, color)
         
         painter.restore()
+        self.draw_pomodoro_counter(painter)
     
     def draw_progress_pie(self, painter: QPainter, margin: int, size: int, color: QColor):
         """Draw progress pie chart"""
@@ -308,7 +318,9 @@ class CircleWindow(QWidget):
             self.current_phase,
             self.timer.is_paused,
             self.is_locked,
-            self.timer.get_time_remaining_text()
+            self.timer.get_time_remaining_text(),
+            self.pomodoros_completed,
+            self.pomodoro_goal
         )
         menu.exec_(event.globalPos())
     
@@ -350,3 +362,90 @@ class CircleWindow(QWidget):
         if not sleeping:                # waking up
             print("System resumed from sleep – restarting Pomodoro.")
             self.timer.restart()
+
+    def on_pomodoro_completed(self):
+        """Increment and save completed Pomodoros"""
+        self.pomodoros_completed += 1
+
+        self.config.set('pomodoros_completed', self.pomodoros_completed)
+        self.config.save_config()
+
+
+    def change_pomodoro_goal(self):
+        """Allow the user to change the Pomodoro goal"""
+        goal, accepted = QInputDialog.getInt(
+            self,
+            "Pomodoro Goal",
+            "Number of Pomodoros:",
+            self.pomodoro_goal,
+            1,
+            99
+        )
+
+        if accepted:
+            self.pomodoro_goal = goal
+
+            self.config.set('pomodoro_goal', self.pomodoro_goal)
+            self.config.save_config()
+
+    def draw_pomodoro_counter(self, painter: QPainter):
+        """Draw Pomodoro counter in the exact center of the circle"""
+        painter.save()
+        painter.setOpacity(1.0)
+
+        center_x = self.width() / 2
+        center_y = self.height() / 2
+
+        margin = UI_CONSTANTS['circle_margin']
+        circle_diameter = min(self.width(), self.height()) - 2 * margin
+
+        diameter = circle_diameter * 0.90
+
+        counter_rect = QRectF(
+            center_x - diameter / 2,
+            center_y - diameter / 2,
+            diameter,
+            diameter
+        )
+
+        # Counter background
+        bg_color = self.parse_color(
+            self.config.colors.get(
+                'counter_background', 'rgba(0, 0, 0, 180)'
+            )
+        )
+
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(bg_color))
+        painter.drawEllipse(counter_rect)
+
+        # Counter text
+        text_color = self.parse_color(
+            self.config.colors.get('counter_text', 'white')
+        )
+
+        counter_text = f"{self.pomodoros_completed}/{self.pomodoro_goal}"
+
+        font = QFont()
+        font.setBold(True)
+
+        font_size = max(9, int(diameter * 0.56))
+        font.setPixelSize(font_size)
+
+        # Ensure text fits inside the background circle
+        metrics = QFontMetricsF(font)
+        max_text_width = diameter * 0.90
+        text_width = metrics.horizontalAdvance(counter_text)
+
+        if text_width > max_text_width:
+            font.setPixelSize(
+                max(8, int(font_size * max_text_width / text_width))
+            )
+
+        painter.setFont(font)
+        painter.setPen(text_color)
+
+        # Center text horizontally and vertically
+        painter.drawText(counter_rect, Qt.AlignCenter, counter_text)
+
+        painter.restore()
