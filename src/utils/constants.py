@@ -3,10 +3,12 @@ from enum import Enum
 
 class Phase(Enum):
     """Pomodoro timer phases"""
+    NO_GOAL = 'no_goal'
     WAITING = 'waiting'
     WORKING = 'working'
     RESTING = 'resting'
     COMPLETING = 'completing'
+    GOAL_COMPLETED = 'goal_completed'
 
 
 # Default configuration

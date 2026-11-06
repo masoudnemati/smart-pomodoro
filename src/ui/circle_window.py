@@ -24,12 +24,14 @@ class CircleWindow(QWidget):
         
         # Initialize components
         self.config = ConfigManager()
-        self.pomodoros_completed = int(
-            self.config.get('pomodoros_completed', 0)
-        )
-        self.pomodoro_goal = int(
-            self.config.get('pomodoro_goal', 4)
-        )
+
+        # Reset goal whenever the application starts
+        self.pomodoro_goal = None
+        self.pomodoros_completed = 0
+
+        self.config.set('pomodoro_goal', None)
+        self.config.set('pomodoros_completed', 0)
+        self.config.save_config()
         self.setup_window()
         
         # Core components
@@ -79,17 +81,22 @@ class CircleWindow(QWidget):
     
     def setup_window(self):
         """Setup window properties"""
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+        self.setWindowFlags(
+            Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+        )
         self.setAttribute(Qt.WA_TranslucentBackground)
-        
+
         # Set size and position from config
         size = self.config.size
+        self.normal_size = size
         self.setFixedSize(size, size)
-        
+
         position = self.config.position
         if position['x'] is not None and position['y'] is not None:
             self.move(max(0, position['x']), max(0, position['y']))
-    
+
+        self.normal_position = self.pos()
+
     def connect_signals(self):
         """Connect all component signals"""
         # Timer signals
@@ -125,14 +132,43 @@ class CircleWindow(QWidget):
         self.context_menu.change_goal_requested.connect(self.change_pomodoro_goal)
     
     def start_initial_state(self):
-        """Start in waiting state"""
-        self.timer.start_waiting_phase()
-        self.input_manager.start_listening() 
+        """Start application based on saved Pomodoro goal"""
+        if self.pomodoro_goal is None:
+            self.timer.start_no_goal_phase()
+        elif self.pomodoros_completed >= self.pomodoro_goal:
+            self.timer.start_goal_completed_phase()
+        else:
+            self.timer.start_work_phase()
 
     
     def on_phase_changed(self, phase: str):
         """Handle phase change"""
         self.current_phase = phase
+
+        # Preserve the original Pomodoro position
+        if phase == Phase.NO_GOAL.value:
+            options = self.config.get('pomodoro_goal_options', [1, 2, 3, 4, 5])
+
+            diameter = 34
+            gap = 10
+            padding = 10
+
+            width = diameter + padding * 2
+            height = len(options) * diameter + (len(options) - 1) * gap + padding * 2
+
+            self.setFixedSize(width, height)
+
+            # Keep the bottom circle aligned with the original Pomodoro position
+            bottom_circle_center = height - padding - diameter / 2
+
+            x = self.normal_position.x() + (self.normal_size - width) // 2
+            y = self.normal_position.y() + self.normal_size / 2 - bottom_circle_center
+
+            self.move(round(x), round(y))
+
+        else:
+            self.setFixedSize(self.normal_size, self.normal_size)
+            self.move(self.normal_position)
         
         # Stop current animation
         if self.current_animation:
@@ -152,6 +188,20 @@ class CircleWindow(QWidget):
         elif phase == Phase.COMPLETING.value:
             self.current_animation = self.completion_animation
             self.current_animation.start()
+        elif phase == Phase.GOAL_COMPLETED.value:
+            self.current_animation = None
+            self.input_manager.stop_listening()
+
+            # Reset goal and counter
+            self.pomodoro_goal = None
+            self.pomodoros_completed = 0
+
+            self.config.set('pomodoro_goal', None)
+            self.config.set('pomodoros_completed', 0)
+            self.config.save_config()
+
+            # Return to goal selection
+            self.timer.start_no_goal_phase()
         
         self.update()
     
@@ -201,7 +251,10 @@ class CircleWindow(QWidget):
     
     def on_completion_finished(self):
         """Handle completion animation finished"""
-        self.timer.start_rest_phase()
+        if self.pomodoros_completed >= self.pomodoro_goal:
+            self.timer.start_goal_completed_phase()
+        else:
+            self.timer.start_rest_phase()
     
     def update_animation_properties(self, properties: dict):
         """Update animation properties and redraw"""
@@ -251,6 +304,10 @@ class CircleWindow(QWidget):
         """Paint the circular timer"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+
+        if self.current_phase == Phase.NO_GOAL.value:
+            self.draw_goal_options(painter)
+            return
 
         #  Draw the shadow first (so it appears behind the circle)
         self.draw_shadow(painter)
@@ -331,6 +388,12 @@ class CircleWindow(QWidget):
         menu.exec_(event.globalPos())
     
     def mousePressEvent(self, event):
+
+        if event.button() == Qt.LeftButton:
+            if self.current_phase == Phase.NO_GOAL.value:
+                self.select_pomodoro_goal(event.pos())
+                return
+
         """Handle mouse press for dragging"""
         if event.button() == Qt.LeftButton and not self.is_locked:
             self.drag_start_position = event.globalPos() - self.frameGeometry().topLeft()
@@ -351,8 +414,9 @@ class CircleWindow(QWidget):
         if event.button() == Qt.LeftButton and self.is_dragging and not self.is_locked:
             self.is_dragging = False
             self.input_manager.set_ignore_input(False)
-            self.config.update_position(self.x(), self.y())
-    
+            self.normal_position = self.pos()
+            self.config.update_position(self.x(), self.y())    
+
     def closeEvent(self, event):
         """Clean up on close"""
         if self.current_animation:
@@ -375,6 +439,8 @@ class CircleWindow(QWidget):
 
         self.config.set('pomodoros_completed', self.pomodoros_completed)
         self.config.save_config()
+
+        self.update()
 
 
     def change_pomodoro_goal(self):
@@ -466,3 +532,70 @@ class CircleWindow(QWidget):
         painter.drawText(text_rect, Qt.AlignCenter, counter_text)
 
         painter.restore()
+
+    def get_goal_option_rects(self):
+        """Calculate vertical goal circle positions (1 bottom, 5 top)"""
+        options = self.config.get('pomodoro_goal_options', [1, 2, 3, 4, 5])
+
+        diameter = 34
+        gap = 10
+
+        total_height = len(options) * diameter + (len(options) - 1) * gap
+
+        start_x = (self.width() - diameter) / 2
+        start_y = (self.height() - total_height) / 2
+
+        return [
+            (
+                goal,
+                QRectF(
+                    start_x,
+                    start_y + (len(options) - 1 - i) * (diameter + gap),
+                    diameter,
+                    diameter
+                )
+            )
+            for i, goal in enumerate(options)
+        ]
+
+
+    def draw_goal_options(self, painter: QPainter):
+        """Draw clickable numbered circles"""
+        painter.save()
+
+        bg_color = self.parse_color(self.config.colors['background'])
+        border_color = self.parse_color(self.config.colors['working'])
+        text_color = self.parse_color(
+            self.config.colors.get('counter_text', 'white')
+        )
+
+        font = QFont()
+        font.setBold(True)
+        font.setPixelSize(16)
+
+        painter.setFont(font)
+
+        for goal, rect in self.get_goal_option_rects():
+            painter.setBrush(QBrush(bg_color))
+            painter.setPen(QPen(border_color, 1))
+            painter.drawEllipse(rect)
+
+            painter.setPen(text_color)
+            painter.drawText(rect, Qt.AlignCenter, str(goal))
+
+        painter.restore()
+
+
+    def select_pomodoro_goal(self, position):
+        """Select goal by clicking a numbered circle"""
+        for goal, rect in self.get_goal_option_rects():
+            if rect.contains(position):
+                self.pomodoro_goal = int(goal)
+                self.pomodoros_completed = 0
+
+                self.config.set('pomodoro_goal', self.pomodoro_goal)
+                self.config.set('pomodoros_completed', 0)
+                self.config.save_config()
+
+                self.timer.start_work_phase()
+                return

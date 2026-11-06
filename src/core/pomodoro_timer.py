@@ -50,7 +50,22 @@ class PomodoroTimer(QObject):
         self.progress = 1.0
         self.is_paused = False
         print("Waiting for activity to start next work session...")
-    
+
+    def start_no_goal_phase(self) -> None:
+        """Wait for the user to select a Pomodoro goal"""
+        self._set_phase(Phase.NO_GOAL)
+        self.elapsed = 0
+        self.progress = 1.0
+        self.is_paused = False
+
+
+    def start_goal_completed_phase(self) -> None:
+        """Stop the timer when the Pomodoro goal is reached"""
+        self._set_phase(Phase.GOAL_COMPLETED)
+        self.elapsed = 0
+        self.progress = 1.0
+        self.is_paused = False
+        
     def start_completion_phase(self) -> None:
         """Start completion animation phase"""
         self._set_phase(Phase.COMPLETING)
@@ -119,7 +134,12 @@ class PomodoroTimer(QObject):
     
     def _update_timer(self) -> None:
         """Update timer progress"""
-        if self.phase in [Phase.WAITING, Phase.COMPLETING] or self.is_paused:
+        if self.phase in [
+            Phase.NO_GOAL,
+            Phase.WAITING,
+            Phase.COMPLETING,
+            Phase.GOAL_COMPLETED
+        ] or self.is_paused:
             return
         
         self.elapsed += 1
@@ -146,3 +166,10 @@ class PomodoroTimer(QObject):
         """Clean up timer resources"""
         if self.timer.isActive():
             self.timer.stop()
+
+    def start_goal_completed_phase(self) -> None:
+        """Stop the timer when the Pomodoro goal is reached"""
+        self._set_phase(Phase.GOAL_COMPLETED)
+        self.elapsed = 0
+        self.progress = 1.0
+        self.is_paused = False
