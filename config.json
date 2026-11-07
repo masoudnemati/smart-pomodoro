@@ -1,6 +1,6 @@
 {
-    "work_time_minutes": 1,
-    "rest_time_minutes": 1,
+    "work_time_minutes": 25,
+    "rest_time_minutes": 5,
     "size": 35,
     "colors": {
         "background": "rgba(50, 50, 50, 95)",
@@ -13,9 +13,9 @@
     },
     "position": {
         "x": 1326,
-        "y": 711
+        "y": 701
     },
     "notification_sound": "notification.mp3",
-    "pomodoro_goal": 3,
+    "pomodoro_goal": 4,
     "pomodoros_completed": 0
 }

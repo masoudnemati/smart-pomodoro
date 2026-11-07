@@ -454,7 +454,9 @@ class CircleWindow(QWidget):
 
         spin_box = QSpinBox()
         spin_box.setRange(1, 99)
-        spin_box.setValue(self.pomodoro_goal)
+        spin_box.setValue(
+            self.pomodoro_goal if self.pomodoro_goal is not None else 1
+        )
         layout.addWidget(spin_box)
 
         # OK button only (no Cancel button)
