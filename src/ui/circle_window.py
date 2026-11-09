@@ -175,24 +175,31 @@ class CircleWindow(QWidget):
             self.current_animation.stop()
         
         # Start appropriate animation
-        if phase == Phase.WAITING.value:
+        if phase == Phase.NO_GOAL.value:
+            self.current_animation = None
+            self.input_manager.stop_listening()
+
+        elif phase == Phase.WAITING.value:
             self.current_animation = self.waiting_animation
             self.current_animation.start()
             self.input_manager.start_listening()
+
         elif phase == Phase.WORKING.value:
             self.input_manager.stop_listening()
             self.current_animation = None
+
         elif phase == Phase.RESTING.value:
             self.current_animation = self.resting_animation
             self.current_animation.start()
+
         elif phase == Phase.COMPLETING.value:
             self.current_animation = self.completion_animation
             self.current_animation.start()
+
         elif phase == Phase.GOAL_COMPLETED.value:
             self.current_animation = None
             self.input_manager.stop_listening()
 
-            # Reset goal and counter
             self.pomodoro_goal = None
             self.pomodoros_completed = 0
 
@@ -200,9 +207,8 @@ class CircleWindow(QWidget):
             self.config.set('pomodoros_completed', 0)
             self.config.save_config()
 
-            # Return to goal selection
             self.timer.start_no_goal_phase()
-        
+
         self.update()
     
     def draw_shadow(self, painter: QPainter):
@@ -427,11 +433,21 @@ class CircleWindow(QWidget):
 
     @pyqtSlot(bool)
     def _on_system_sleep_signal(self, sleeping: bool):
-        """Called when system suspends or wakes up."""
-        print(f"D-Bus signal received! sleeping={sleeping}")
-        if not sleeping:                # waking up
-            print("System resumed from sleep – restarting Pomodoro.")
-            self.timer.restart()
+        """Reset Pomodoro and return to goal selection on suspend/resume"""
+
+        if sleeping:
+            print("System suspending — resetting Pomodoro.")
+        else:
+            print("System resumed — returning to goal selection.")
+
+        self.pomodoro_goal = None
+        self.pomodoros_completed = 0
+
+        self.config.set('pomodoro_goal', None)
+        self.config.set('pomodoros_completed', 0)
+        self.config.save_config()
+
+        self.timer.start_no_goal_phase()
 
     def on_pomodoro_completed(self):
         """Increment and save completed Pomodoros"""

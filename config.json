@@ -16,6 +16,6 @@
         "y": 701
     },
     "notification_sound": "notification.mp3",
-    "pomodoro_goal": 4,
+    "pomodoro_goal": null,
     "pomodoros_completed": 0
 }
